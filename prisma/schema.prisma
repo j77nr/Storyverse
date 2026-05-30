@@ -1,0 +1,201 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER MANAGEMENT
+// ============================================================================
+
+model User {
+  id                String              @id @default(cuid())
+  email             String              @unique
+  emailVerified     DateTime?
+  name              String?
+  image             String?
+  role              Role                @default(VISITOR)
+  status            UserStatus          @default(ACTIVE)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Relations
+  authorApplication AuthorApplication?
+  stories           Story[]
+  accounts          Account[]
+  sessions          Session[]
+  
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================================
+// AUTHOR SYSTEM
+// ============================================================================
+
+model AuthorApplication {
+  id          String                    @id @default(cuid())
+  userId      String                    @unique
+  bio         String
+  motivation  String
+  status      AuthorApplicationStatus   @default(PENDING)
+  submittedAt DateTime                  @default(now())
+  reviewedAt  DateTime?
+  reviewerId  String?
+  reviewNote  String?
+  
+  user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("author_applications")
+}
+
+// ============================================================================
+// STORY SYSTEM
+// ============================================================================
+
+model Story {
+  id              String        @id @default(cuid())
+  authorId        String
+  title           String
+  subtitle        String?
+  description     String
+  genre           String        // JSON string of array
+  coverImage      String?
+  accentColor     String        @default("bg-blue-500")
+  featured        Boolean       @default(false)
+  status          StoryStatus   @default(DRAFT)
+  moderationScore Int?
+  moderationFlags String?       // JSON string of array
+  rejectionReason String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  publishedAt     DateTime?
+  
+  // Relations
+  author          User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  chapters        Chapter[]
+  contentWarnings ContentWarning[]
+  stats           StoryStats?
+  
+  @@index([authorId])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([featured])
+  @@map("stories")
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  storyId   String
+  number    Int
+  title     String
+  content   String
+  readTime  String
+  mood      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  
+  @@unique([storyId, number])
+  @@index([storyId])
+  @@map("chapters")
+}
+
+model ContentWarning {
+  id      String @id @default(cuid())
+  storyId String
+  warning String
+  
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  
+  @@index([storyId])
+  @@map("content_warnings")
+}
+
+model StoryStats {
+  storyId     String   @id
+  views       Int      @default(0)
+  likes       Int      @default(0)
+  bookmarks   Int      @default(0)
+  lastUpdated DateTime @updatedAt
+  
+  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  
+  @@map("story_stats")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Role {
+  VISITOR
+  AUTHOR
+  MODERATOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum AuthorApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum StoryStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+  REJECTED
+}
