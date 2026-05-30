@@ -1,1 +1,1 @@
-{"build":{"builder":"NIXPACKS","buildCommand":"npx prisma generate && npm run build || true"},"deploy":{"startCommand":"npx prisma db push && node .next/standalone/server.js","restartPolicyType":"ON_FAILURE","restartPolicyMaxRetries":10}}
+{"build":{"builder":"NIXPACKS","buildCommand":"npx prisma generate && npm run build || true"},"deploy":{"startCommand":"npx prisma db push && npm run start -- -p $PORT","restartPolicyType":"ON_FAILURE","restartPolicyMaxRetries":10}}
