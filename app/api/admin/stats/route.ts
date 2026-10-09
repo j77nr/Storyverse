@@ -34,23 +34,23 @@ export async function GET(req: NextRequest) {
 
     const roleStats = {
       total: allUsers.length,
-      authors: allUsers.filter(u => u.role === 'AUTHOR').length,
-      visitors: allUsers.filter(u => u.role === 'VISITOR').length,
-      admins: allUsers.filter(u => u.role === 'ADMIN').length,
+      authors: allUsers.filter((u: typeof allUsers[0]) => u.role === 'AUTHOR').length,
+      visitors: allUsers.filter((u: typeof allUsers[0]) => u.role === 'VISITOR').length,
+      admins: allUsers.filter((u: typeof allUsers[0]) => u.role === 'ADMIN').length,
     };
 
     const storyStats = {
       total: allStories.length,
-      published: allStories.filter(s => s.status === 'PUBLISHED').length,
-      pending: allStories.filter(s => s.status === 'PENDING').length,
-      rejected: allStories.filter(s => s.status === 'REJECTED').length,
+      published: allStories.filter((s: typeof allStories[0]) => s.status === 'PUBLISHED').length,
+      pending: allStories.filter((s: typeof allStories[0]) => s.status === 'PENDING').length,
+      rejected: allStories.filter((s: typeof allStories[0]) => s.status === 'REJECTED').length,
     };
 
     const applicationStats = {
       total: allApplications.length,
-      pending: allApplications.filter(a => a.status === 'PENDING').length,
-      approved: allApplications.filter(a => a.status === 'APPROVED').length,
-      rejected: allApplications.filter(a => a.status === 'REJECTED').length,
+      pending: allApplications.filter((a: typeof allApplications[0]) => a.status === 'PENDING').length,
+      approved: allApplications.filter((a: typeof allApplications[0]) => a.status === 'APPROVED').length,
+      rejected: allApplications.filter((a: typeof allApplications[0]) => a.status === 'REJECTED').length,
     };
 
     const engagement = {
