@@ -54,8 +54,8 @@ export async function GET(req: NextRequest) {
     };
 
     const engagement = {
-      totalViews: allStories.reduce((sum, s) => sum + (s.stats?.views || 0), 0),
-      totalLikes: allStories.reduce((sum, s) => sum + (s.stats?.likes || 0), 0),
+      totalViews: allStories.reduce((sum: number, s) => sum + (s.stats?.views || 0), 0),
+      totalLikes: allStories.reduce((sum: number, s) => sum + (s.stats?.likes || 0), 0),
     };
 
     console.log('Returning stats:', roleStats);
