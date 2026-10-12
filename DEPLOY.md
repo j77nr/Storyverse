@@ -1,140 +1,436 @@
-# 🚀 Déploiement StoryVerse sur Railway
+# 🚀 Déploiement StoryVerse sur Vercel
 
-## Prérequis
-
-1. Un compte [Railway](https://railway.app) (gratuit, 5$/mois de crédits)
-2. Un repo Git (GitHub, GitLab)
-3. Les variables d'environnement prêtes
+Guide complet pour déployer StoryVerse sur Vercel avec PostgreSQL, OAuth, et Vercel Blob Storage.
 
 ---
 
-## Étapes de Déploiement
+## 📋 Vue d'Ensemble
 
-### 1. Pousser le code sur GitHub
+### Ce qui change par rapport à Railway :
+- **Base de données** : SQLite → PostgreSQL (Neon recommandé, gratuit)
+- **Uploads** : File system local → Vercel Blob Storage
+- **Déploiement** : Railway → Vercel
+- **URLs** : `*.up.railway.app` → `*.vercel.app`
+
+---
+
+## 🎯 Prérequis
+
+1. Un compte [Vercel](https://vercel.com) (gratuit, illimité pour projets personnels)
+2. Un compte [Neon](https://neon.tech) pour PostgreSQL (gratuit, 500 MB)
+3. Un repo Git (GitHub, GitLab, Bitbucket)
+4. Les credentials OAuth prêts (GitHub, Google)
+
+---
+
+## 📦 Étape 1 : Préparation du Code
+
+### 1.1 Pousser sur GitHub
 
 ```bash
-git init
 git add .
-git commit -m "Initial commit - StoryVerse"
-git remote add origin https://github.com/VOTRE_USERNAME/storyverse.git
-git push -u origin main
+git commit -m "Prêt pour déploiement Vercel"
+git push origin main
 ```
 
-### 2. Créer un projet sur Railway
+### 1.2 Vérifier les fichiers de configuration
 
-1. Aller sur [railway.app](https://railway.app)
-2. Cliquer sur "New Project"
-3. Choisir "Deploy from GitHub repo"
-4. Sélectionner votre repo StoryVerse
-5. Railway détectera automatiquement Next.js
+Confirmez que ces fichiers sont présents et corrects :
+- ✅ `vercel.json` (framework: nextjs, regions: cdg1)
+- ✅ `prisma/schema.prisma` (provider: "postgresql")
+- ✅ `.env.example` (avec DATABASE_URL PostgreSQL)
+- ✅ `next.config.mjs` (avec Vercel Blob dans remotePatterns)
+- ✅ `package.json` (avec postinstall et db:migrate scripts)
 
-### 3. Configurer les Variables d'Environnement
+---
 
-Dans Railway > Settings > Variables, ajouter :
+## 🗄️ Étape 2 : Configuration de la Base de Données PostgreSQL
 
+### Option A : Neon (Recommandé - Gratuit)
+
+1. **Créer un compte sur [Neon](https://neon.tech)**
+2. **Créer un nouveau projet**
+   - Nom : `storyverse`
+   - Région : Europe (Frankfurt ou proche)
+   - PostgreSQL version : 15 ou 16
+3. **Copier la Connection String**
+   - Format : `postgresql://user:password@ep-xxx.eu-central-1.aws.neon.tech/neondb?sslmode=require`
+   - Gardez-la pour l'étape Vercel
+
+### Option B : Vercel Postgres (Payant après essai)
+
+1. Dans le dashboard Vercel (après avoir créé le projet)
+2. Onglet "Storage" → "Create Database" → "Postgres"
+3. Suivre les instructions
+4. La variable `DATABASE_URL` sera automatiquement ajoutée
+
+### Option C : Autres providers
+- [Supabase](https://supabase.com) (gratuit, 500 MB)
+- [Railway Postgres](https://railway.app) (5$/mois de crédits)
+- [Amazon RDS](https://aws.amazon.com/rds/) (payant)
+
+---
+
+## 🚀 Étape 3 : Déploiement sur Vercel
+
+### 3.1 Créer le projet Vercel
+
+1. Aller sur [vercel.com](https://vercel.com)
+2. Cliquer sur "Add New..." → "Project"
+3. Importer votre repo GitHub
+4. Vercel détecte automatiquement Next.js
+5. **NE PAS déployer encore** - configurer les variables d'abord
+
+### 3.2 Configurer les Variables d'Environnement
+
+Dans "Settings" → "Environment Variables", ajouter :
+
+#### Base de Données
 ```
-DATABASE_URL=file:./prisma/dev.db
-NEXTAUTH_URL=https://votre-app.up.railway.app
-NEXTAUTH_SECRET=generer-avec-openssl-rand-base64-32
+DATABASE_URL=postgresql://user:password@host:5432/storyverse?sslmode=require
+```
+(Coller votre Connection String de Neon)
+
+#### NextAuth
+```
+NEXTAUTH_URL=https://votre-app.vercel.app
+NEXTAUTH_SECRET=<générer ci-dessous>
+```
+
+Pour générer `NEXTAUTH_SECRET` :
+```bash
+openssl rand -base64 32
+```
+Ou utiliser : https://generate-secret.vercel.app/32
+
+#### GitHub OAuth
+```
 GITHUB_CLIENT_ID=votre-github-client-id
 GITHUB_CLIENT_SECRET=votre-github-client-secret
 ```
 
-**Pour générer NEXTAUTH_SECRET :**
-```bash
-openssl rand -base64 32
+#### Google OAuth (optionnel)
+```
+GOOGLE_CLIENT_ID=votre-google-client-id
+GOOGLE_CLIENT_SECRET=votre-google-client-secret
 ```
 
-### 4. Configurer GitHub OAuth pour la Production
+#### Email (optionnel)
+```
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+EMAIL_FROM=StoryVerse <noreply@storyverse.com>
+```
 
-1. Aller sur GitHub > Settings > Developer Settings > OAuth Apps
-2. Créer une nouvelle app OU modifier l'existante
-3. Mettre à jour :
-   - Homepage URL: `https://votre-app.up.railway.app`
-   - Authorization callback URL: `https://votre-app.up.railway.app/api/auth/callback/github`
+#### Vercel Blob Storage (pour les uploads)
+```
+BLOB_READ_WRITE_TOKEN=<sera généré à l'étape 4>
+```
 
-### 5. Déployer
+### 3.3 Déployer
 
-Railway déploie automatiquement à chaque push sur `main`.
-
-Le build command est : `npx prisma generate && npm run build || true`
-Le start command est : `npx prisma migrate deploy && npm run start`
-
-### 6. Vérifier
-
-Une fois déployé, Railway vous donne une URL comme :
-`https://storyverse-production.up.railway.app`
+1. Cliquer sur "Deploy"
+2. Attendre le build (2-5 minutes)
+3. Une fois terminé, noter votre URL : `https://storyverse-xxx.vercel.app`
 
 ---
 
-## Variables d'Environnement Requises
+## 🔐 Étape 4 : Configuration OAuth
 
-| Variable | Description | Obligatoire |
-|----------|-------------|-------------|
-| `DATABASE_URL` | Chemin SQLite | ✅ |
-| `NEXTAUTH_URL` | URL de l'app | ✅ |
-| `NEXTAUTH_SECRET` | Secret JWT | ✅ |
-| `GITHUB_CLIENT_ID` | OAuth GitHub | ✅ |
-| `GITHUB_CLIENT_SECRET` | OAuth GitHub | ✅ |
-| `RESEND_API_KEY` | Emails | ❌ (optionnel) |
-| `EMAIL_FROM` | Expéditeur | ❌ (optionnel) |
+### 4.1 GitHub OAuth
+
+1. Aller sur [GitHub Developer Settings](https://github.com/settings/developers)
+2. Ouvrir votre OAuth App existante (ou en créer une nouvelle)
+3. **Mettre à jour :**
+   - **Homepage URL** : `https://votre-app.vercel.app`
+   - **Authorization callback URL** : `https://votre-app.vercel.app/api/auth/callback/github`
+4. Sauvegarder
+
+### 4.2 Google OAuth (si utilisé)
+
+1. Aller sur [Google Cloud Console](https://console.cloud.google.com)
+2. Sélectionner votre projet OAuth
+3. "APIs & Services" → "Credentials"
+4. Éditer votre OAuth 2.0 Client ID
+5. **Ajouter dans "Authorized redirect URIs" :**
+   - `https://votre-app.vercel.app/api/auth/callback/google`
+6. Sauvegarder
+
+### 4.3 Mettre à jour NEXTAUTH_URL
+
+Dans Vercel :
+1. "Settings" → "Environment Variables"
+2. Éditer `NEXTAUTH_URL`
+3. Remplacer par votre vraie URL : `https://storyverse-xxx.vercel.app`
+4. "Save" → "Redeploy" (un bouton apparaîtra)
 
 ---
 
-## Alternatives à Railway
+## 📁 Étape 5 : Configuration du Blob Storage (Uploads)
 
-### Render (gratuit)
-1. Créer un compte sur [render.com](https://render.com)
-2. New > Web Service
-3. Connecter le repo GitHub
-4. Build Command: `npm install && npx prisma generate && npm run build`
-5. Start Command: `npx prisma migrate deploy && npm run start`
+### 5.1 Activer Vercel Blob
 
-### VPS (DigitalOcean, Hetzner)
+1. Dans votre projet Vercel
+2. Onglet "Storage" → "Create Database"
+3. Choisir "Blob" (gratuit pour 500 MB)
+4. Créer le store : nom `storyverse-uploads`
+
+### 5.2 Obtenir le token
+
+1. Une fois créé, aller dans "Settings" du Blob store
+2. Copier le `BLOB_READ_WRITE_TOKEN`
+3. L'ajouter dans les variables d'environnement Vercel
+
+### 5.3 Migrer le code d'upload
+
+**Fichier à modifier** : `app/api/stories/[id]/upload/route.ts` (ou similaire)
+
+**Avant (file system local) :**
+```ts
+import fs from 'fs';
+import path from 'path';
+
+// Sauvegarder localement
+const filePath = path.join(process.cwd(), 'public', 'uploads', filename);
+fs.writeFileSync(filePath, buffer);
+```
+
+**Après (Vercel Blob) :**
+```ts
+import { put } from '@vercel/blob';
+
+// Installer d'abord : npm install @vercel/blob
+
+// Sauvegarder sur Vercel Blob
+const blob = await put(`uploads/${filename}`, buffer, {
+  access: 'public',
+  token: process.env.BLOB_READ_WRITE_TOKEN,
+});
+
+// blob.url contient l'URL publique
+```
+
+### 5.4 Installer le package
+
 ```bash
-# Sur le serveur
-git clone https://github.com/VOTRE_USERNAME/storyverse.git
-cd storyverse
-npm install
-npx prisma generate
-npx prisma migrate deploy
-npm run build
-npm run start
+npm install @vercel/blob
+git add package.json package-lock.json
+git commit -m "Add Vercel Blob for uploads"
+git push
+```
+
+Vercel redéploiera automatiquement.
+
+---
+
+## 🗃️ Étape 6 : Migration de la Base de Données
+
+### 6.1 Créer les migrations
+
+**En local** (avec votre ancien SQLite ou une DB de dev) :
+
+```bash
+# Générer une migration initiale
+npx prisma migrate dev --name init
+
+# Cela crée un fichier dans prisma/migrations/
+```
+
+### 6.2 Pousser les migrations
+
+```bash
+git add prisma/migrations
+git commit -m "Add initial migration"
+git push
+```
+
+Vercel exécutera automatiquement `prisma migrate deploy` lors du build grâce au `vercel.json`.
+
+### 6.3 Seed la base de données (optionnel)
+
+Si vous avez un fichier `prisma/seed.ts` :
+
+**En local :**
+```bash
+# Pointer temporairement vers la DB de production
+DATABASE_URL="postgresql://..." npm run db:seed
+```
+
+**Ou via Vercel CLI :**
+```bash
+npm install -g vercel
+vercel env pull .env.production
+npm run db:seed
 ```
 
 ---
 
-## Troubleshooting
+## ✅ Étape 7 : Vérifications Post-Déploiement
 
-### Le build échoue
-Les erreurs "Dynamic server usage" sont normales — le `|| true` dans le build command les ignore.
+### 7.1 Tester l'application
 
-### La base de données est vide
-```bash
-# Lancer le seed après le premier déploiement
-npx prisma db seed
-```
+1. Ouvrir `https://votre-app.vercel.app`
+2. Vérifier que la page d'accueil charge
+3. Tester la connexion OAuth (GitHub/Google)
+4. Vérifier que le dashboard fonctionne
+5. Tester la soumission d'une histoire
+6. Tester l'upload d'image (si implémenté)
 
-### Les images ne persistent pas
-Sur Railway, le filesystem est persistant par défaut. Les uploads dans `/public/uploads/` sont conservés entre les déploiements.
+### 7.2 Vérifier les logs
 
-### OAuth ne fonctionne pas
-Vérifier que `NEXTAUTH_URL` correspond exactement à l'URL de Railway et que le callback URL dans GitHub OAuth est correct.
+En cas d'erreur :
+1. Onglet "Deployments" dans Vercel
+2. Cliquer sur le dernier déploiement
+3. Voir les logs de build et runtime
+4. Les erreurs courantes :
+   - Variables d'environnement manquantes
+   - Erreurs de migration Prisma
+   - Timeouts (augmenter les limites dans Settings)
+
+### 7.3 Tester le PWA
+
+1. Ouvrir l'app en navigation privée
+2. Ouvrir les DevTools → Application → Service Workers
+3. Confirmer que `/sw.js` est enregistré
+4. Tester "Add to Home Screen" sur mobile
+5. Vérifier le mode offline (fermer le serveur et rafraîchir)
 
 ---
 
-## Commandes Utiles
+## 🐛 Troubleshooting
 
-```bash
-# Voir les logs
-railway logs
+### Erreur : "Dynamic server usage"
+**Solution** : C'est normal pendant le build. Le `|| true` dans `vercel.json` l'ignore si nécessaire. Vérifier que les pages utilisent bien `export const dynamic = 'force-dynamic'` si besoin.
 
-# Ouvrir un shell
-railway shell
+### Erreur : "Cannot connect to database"
+**Solutions** :
+1. Vérifier que `DATABASE_URL` est correcte dans Vercel
+2. Vérifier que `?sslmode=require` est présent
+3. Tester la connexion avec `npx prisma db pull` localement
+4. Vérifier que Neon n'est pas en pause (gratuit = pause après 5 min d'inactivité)
 
-# Lancer le seed
-railway run npx prisma db seed
+### Erreur : "OAuth redirect_uri mismatch"
+**Solution** : Vérifier que les URLs callback dans GitHub/Google correspondent EXACTEMENT à l'URL Vercel (avec https://).
 
-# Ouvrir Prisma Studio
-railway run npx prisma studio
+### Erreur : "Prisma Client not found"
+**Solution** : Le script `postinstall` ne s'est pas exécuté. Aller dans Settings → General → Build Command et ajouter manuellement : `prisma generate && next build`
+
+### Les uploads ne fonctionnent pas
+**Solutions** :
+1. Vérifier que `BLOB_READ_WRITE_TOKEN` est défini
+2. Vérifier que `@vercel/blob` est installé
+3. Vérifier que le code utilise `put()` et pas `fs.writeFileSync()`
+
+### Le Service Worker ne se charge pas
+**Solutions** :
+1. Vérifier que `/public/sw.js` existe
+2. Vérifier que les headers sont configurés dans `next.config.mjs`
+3. Vérifier dans DevTools → Network que `/sw.js` retourne 200
+4. Effacer le cache du navigateur et réessayer
+
+---
+
+## 📊 Monitoring et Performance
+
+### Vercel Analytics (optionnel)
+
+1. Onglet "Analytics" dans Vercel
+2. Activer "Web Analytics" (gratuit)
+3. Ajouter dans `app/layout.tsx` :
+
+```tsx
+import { Analytics } from '@vercel/analytics/react';
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        {children}
+        <Analytics />
+      </body>
+    </html>
+  );
+}
 ```
+
+4. Installer : `npm install @vercel/analytics`
+
+### Limites du Plan Gratuit
+
+- **Builds** : Illimités
+- **Bandwidth** : 100 GB/mois
+- **Serverless executions** : 100 GB-heures/mois
+- **Blob Storage** : 500 MB (gratuit avec Hobby)
+- **PostgreSQL (Neon)** : 500 MB, 1 DB (gratuit)
+
+---
+
+## 🔄 Workflow de Développement
+
+### En local
+```bash
+# Utiliser SQLite ou une DB de dev
+DATABASE_URL="file:./dev.db" npm run dev
+```
+
+### Pour tester en production
+```bash
+# Brancher sur la DB de prod
+vercel env pull .env.local
+npm run dev
+```
+
+### Déployer
+```bash
+git push origin main
+# Vercel déploie automatiquement
+```
+
+### Preview deployments
+Chaque PR crée un déploiement preview automatique avec URL unique.
+
+---
+
+## 🆘 Support
+
+### Documentation
+- [Vercel Docs](https://vercel.com/docs)
+- [Neon Docs](https://neon.tech/docs)
+- [Vercel Blob Docs](https://vercel.com/docs/storage/vercel-blob)
+- [Next.js Deployment](https://nextjs.org/docs/deployment)
+
+### Communauté
+- [Vercel Discord](https://vercel.com/discord)
+- [Next.js GitHub Discussions](https://github.com/vercel/next.js/discussions)
+
+---
+
+## 📝 Checklist Finale
+
+Avant de considérer le déploiement comme complet :
+
+- [ ] L'app est accessible sur `https://votre-app.vercel.app`
+- [ ] La connexion OAuth GitHub fonctionne
+- [ ] La connexion OAuth Google fonctionne (si configuré)
+- [ ] Le dashboard admin affiche les vraies données
+- [ ] Les histoires peuvent être soumises
+- [ ] Les images peuvent être uploadées (si implémenté)
+- [ ] Le PWA est installable (voir icône dans la barre d'adresse)
+- [ ] Le Service Worker est actif (vérifier dans DevTools)
+- [ ] Le mode offline affiche un fallback (pas d'erreur blanche)
+- [ ] Les emails sont envoyés (si Resend configuré)
+- [ ] Le build de production passe sans erreur
+- [ ] Lighthouse score > 90 (Performance, Accessibilité, PWA)
+- [ ] Aucune erreur dans les logs Vercel
+- [ ] Les variables d'environnement sont toutes configurées
+
+---
+
+**Migration réussie ! 🎉**
+
+**Prochaines étapes :**
+1. Configurer un nom de domaine personnalisé (optionnel)
+2. Activer Vercel Analytics pour tracking
+3. Configurer les alertes de monitoring
+4. Mettre en place un workflow CI/CD avec tests
+
+**Créé avec ❤️ pour StoryVerse**

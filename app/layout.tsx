@@ -4,6 +4,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { Footer } from "@/components/navigation/Footer";
 import { ToastProvider } from "@/components/ui/Toast";
+import Script from 'next/script';
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -18,6 +19,19 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "StoryVerse - Histoires Interactives Immersives",
   description: "Découvrez des histoires captivantes avec une expérience de lecture cinématique",
+  manifest: '/manifest.json',
+  themeColor: '#8b5cf6',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'StoryVerse',
+  },
+  icons: {
+    apple: [
+      { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -38,6 +52,25 @@ export default function RootLayout({
             </div>
           </ToastProvider>
         </SessionProvider>
+        <Script
+          id="sw-register"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                      console.log('SW registered:', registration.scope);
+                    })
+                    .catch(function(error) {
+                      console.log('SW registration failed:', error);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
