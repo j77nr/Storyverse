@@ -19,19 +19,19 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "StoryVerse - Histoires Interactives Immersives",
   description: "Découvrez des histoires captivantes avec une expérience de lecture cinématique",
-  manifest: '/manifest.json',
+  // manifest: '/manifest.json', // Désactivé temporairement - activer après ajout des icônes
   themeColor: '#8b5cf6',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'StoryVerse',
-  },
-  icons: {
-    apple: [
-      { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
-      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-    ],
-  },
+  // appleWebApp: {
+  //   capable: true,
+  //   statusBarStyle: 'black-translucent',
+  //   title: 'StoryVerse',
+  // },
+  // icons: {
+  //   apple: [
+  //     { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
+  //     { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+  //   ],
+  // },
 };
 
 export default function RootLayout({
@@ -52,7 +52,8 @@ export default function RootLayout({
             </div>
           </ToastProvider>
         </SessionProvider>
-        <Script
+        {/* Service Worker désactivé temporairement - activer après ajout des icônes PWA */}
+        {/* <Script
           id="sw-register"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
@@ -70,7 +71,7 @@ export default function RootLayout({
               }
             `,
           }}
-        />
+        /> */}
       </body>
     </html>
   );

@@ -6,7 +6,6 @@ const STATIC_ASSETS = [
   '/',
   '/stories',
   '/about',
-  '/authors',
   '/manifest.json',
 ];
 
